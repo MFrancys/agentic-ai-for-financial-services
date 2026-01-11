@@ -28,7 +28,31 @@ Get started with AML Investigation AI in 5 minutes.
 
 ## Quick Test
 
-### Option 1: Command Line Interface
+### Option 1: Streamlit Web App (Recommended)
+
+The easiest and most interactive way:
+
+```bash
+streamlit run streamlit_app.py
+```
+
+Then open http://localhost:8501 in your browser and:
+1. Select "Quick Investigation" from the sidebar
+2. Choose a predefined case
+3. Click "Start Investigation"
+4. View beautiful, interactive results!
+
+Features:
+- 🎨 Beautiful, interactive UI
+- 📊 Real-time visualizations
+- 📋 Evidence tracking
+- 📈 Risk gauge charts
+- 💾 Investigation history
+- 📥 Download reports
+
+See [Streamlit Guide](STREAMLIT_GUIDE.md) for full details.
+
+### Option 2: Command Line Interface
 
 Run the demo with 3 predefined cases:
 
@@ -42,7 +66,7 @@ Run a specific case:
 python app.py --case-id CASE_001
 ```
 
-### Option 2: Python API
+### Option 3: Python API
 
 ```python
 from src.models.investigation_case import InvestigationCase, AlertType
@@ -68,7 +92,7 @@ print(f"SAR Required: {result.sar_required}")
 print(f"Recommendation: {result.recommendation}")
 ```
 
-### Option 3: REST API
+### Option 4: REST API
 
 Start the API server:
 
@@ -92,7 +116,7 @@ curl -X POST http://localhost:8000/api/v1/investigations \
   }'
 ```
 
-### Option 4: Jupyter Notebook
+### Option 5: Jupyter Notebook
 
 ```bash
 jupyter notebook notebooks/interactive_investigation.ipynb

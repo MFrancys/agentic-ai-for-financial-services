@@ -65,6 +65,9 @@ LOG_LEVEL=INFO
 ### Run an Investigation
 
 ```bash
+# Web Interface (Recommended)
+streamlit run streamlit_app.py
+
 # CLI Investigation
 python app.py --case-id CASE_001
 
@@ -76,6 +79,22 @@ jupyter notebook notebooks/interactive_investigation.ipynb
 ```
 
 ## Example Usage
+
+### Streamlit Web App (Interactive UI)
+
+The easiest way to use the system:
+
+```bash
+streamlit run streamlit_app.py
+```
+
+Then open http://localhost:8501 in your browser for:
+- **Quick Investigation**: Pre-configured cases ready to run
+- **Custom Investigation**: Create your own cases
+- **Data Explorer**: View customer profiles and transactions
+- **Investigation History**: Track all your investigations
+
+See [Streamlit Guide](docs/STREAMLIT_GUIDE.md) for detailed instructions.
 
 ### Python API
 
