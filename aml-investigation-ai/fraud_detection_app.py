@@ -217,13 +217,6 @@ with st.sidebar:
     st.image("https://img.icons8.com/color/96/000000/bank-cards.png", width=100)
     st.title("🤖 Fraud Detection Agent")
     
-    # Mode selection
-    mode = st.radio(
-        "Select Mode",
-        ["Quick Detection", "Custom Case", "History"],
-        help="Choose detection mode"
-    )
-    
     st.markdown("---")
     
     # System info
@@ -250,158 +243,24 @@ with st.sidebar:
     - Behavioral analysis
     - Risk assessment
     """)
+    
+    st.markdown("---")
+    
+    # Statistics in sidebar
+    if st.session_state.investigation_history:
+        st.markdown("### 📊 Statistics")
+        fraud_confirmed = sum(1 for inv in st.session_state.investigation_history 
+                            if inv['result'].final_risk_score >= 8)
+        avg_score = sum(inv['result'].final_risk_score 
+                       for inv in st.session_state.investigation_history) / len(st.session_state.investigation_history)
+        
+        st.metric("Total Cases", len(st.session_state.investigation_history))
+        st.metric("Confirmed Fraud", fraud_confirmed)
+        st.metric("Avg Score", f"{avg_score:.1f}/10")
 
-# Main content
-if mode == "Quick Detection":
-    st.header("🚀 Quick Fraud Detection")
-    st.markdown("Select a predefined fraud scenario to investigate")
-    
-    # Predefined fraud cases
-    fraud_scenarios = {
-        "Stolen Card - Foreign Country": {
-            "case_id": "FRAUD_CC_001",
-            "customer_id": "CUST_001",
-            "account_id": "ACCT_12345",
-            "fraud_type": FraudType.CREDIT_CARD_FRAUD,
-            "description": "15 high-value transactions in 2 hours from new device in Romania",
-            "priority": "critical",
-            "transaction_ids": ["TXN_001", "TXN_002", "TXN_003", "TXN_004", "TXN_005"],
-            "total_amount": 4500.00,
-            "fraud_indicators": [
-                FraudIndicator.UNUSUAL_VELOCITY,
-                FraudIndicator.GEOGRAPHIC_ANOMALY,
-                FraudIndicator.NEW_DEVICE
-            ],
-            "time_window_hours": 2,
-            "customer_response": "I didn't make these transactions! My card was stolen yesterday.",
-            "dispute_filed": True,
-            "device_id": "DEV_UNKNOWN_999",
-            "geolocation": "Romania",
-            "merchant_name": "Online Electronics Store"
-        },
-        "Account Takeover - New Device": {
-            "case_id": "FRAUD_ATO_001",
-            "customer_id": "CUST_002",
-            "account_id": "ACCT_67890",
-            "fraud_type": FraudType.ACCOUNT_TAKEOVER,
-            "description": "Password changed, new device, unusual spending pattern",
-            "priority": "high",
-            "transaction_ids": ["TXN_201", "TXN_202", "TXN_203"],
-            "total_amount": 2800.00,
-            "fraud_indicators": [
-                FraudIndicator.NEW_DEVICE,
-                FraudIndicator.BEHAVIORAL_CHANGE,
-                FraudIndicator.MULTIPLE_FAILED_ATTEMPTS
-            ],
-            "time_window_hours": 24,
-            "customer_response": None,
-            "dispute_filed": False,
-            "device_id": "DEV_NEW_555",
-            "geolocation": "Different State"
-        },
-        "Legitimate Transaction - Traveling": {
-            "case_id": "FRAUD_LEG_001",
-            "customer_id": "CUST_003",
-            "account_id": "ACCT_11111",
-            "fraud_type": FraudType.TRANSACTION_ANOMALY,
-            "description": "Normal transactions during customer's business trip",
-            "priority": "low",
-            "transaction_ids": ["TXN_301", "TXN_302"],
-            "total_amount": 650.00,
-            "fraud_indicators": [FraudIndicator.GEOGRAPHIC_ANOMALY],
-            "time_window_hours": 48,
-            "customer_response": "I'm on a business trip, these are my transactions",
-            "dispute_filed": False,
-            "device_id": "DEV_KNOWN_123",
-            "geolocation": "Business Travel"
-        }
-    }
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        selected_scenario = st.selectbox(
-            "Select Fraud Scenario",
-            list(fraud_scenarios.keys())
-        )
-        
-        scenario_data = fraud_scenarios[selected_scenario]
-        
-        # Display case details
-        st.markdown("#### Case Details")
-        details_col1, details_col2, details_col3 = st.columns(3)
-        
-        with details_col1:
-            st.metric("Total Amount", f"${scenario_data['total_amount']:,.2f}")
-        with details_col2:
-            st.metric("Transactions", len(scenario_data['transaction_ids']))
-        with details_col3:
-            st.metric("Time Window", f"{scenario_data['time_window_hours']} hours")
-        
-        st.markdown(f"**📍 Location:** {scenario_data['geolocation']}")
-        st.markdown(f"**🖥️ Device:** {scenario_data['device_id']}")
-        st.markdown(f"**📝 Description:** {scenario_data['description']}")
-        
-        if scenario_data.get('customer_response'):
-            st.markdown(f"**💬 Customer Says:** *\"{scenario_data['customer_response']}\"*")
-        
-        # Show indicators
-        st.markdown("**🚨 Fraud Indicators:**")
-        for indicator in scenario_data['fraud_indicators']:
-            st.markdown(f"- {indicator.value.replace('_', ' ').title()}")
-    
-    with col2:
-        st.markdown("#### Quick Actions")
-        
-        if st.button("🤖 Start AI Agent Investigation", type="primary", use_container_width=True):
-            # Create fraud case
-            case = FraudCase(**scenario_data)
-            
-            # Progress indicators
-            with st.spinner("🤖 AI Agent analyzing fraud case..."):
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                
-                # Create fraud detection agent
-                agent = FraudDetectionAgent()
-                
-                status_text.text("Agent reasoning about fraud indicators...")
-                progress_bar.progress(20)
-                
-                status_text.text("Executing velocity analysis...")
-                progress_bar.progress(40)
-                
-                status_text.text("Checking device fingerprint...")
-                progress_bar.progress(60)
-                
-                status_text.text("Analyzing geographic anomalies...")
-                progress_bar.progress(80)
-                
-                # Run agent investigation
-                result = agent.investigate(case, verbose=False)
-                
-                status_text.text("Agent making final decision...")
-                progress_bar.progress(100)
-                
-                # Store result
-                st.session_state.fraud_result = result
-                st.session_state.investigation_history.append({
-                    'timestamp': datetime.now(),
-                    'case_id': result.case_id,
-                    'result': result
-                })
-                
-            st.success("✅ Agent Investigation Complete!")
-            st.balloons()
-    
-    # Display results if available
-    if st.session_state.fraud_result:
-        st.markdown("---")
-        display_fraud_results(st.session_state.fraud_result)
-
-elif mode == "Custom Case":
-    st.header("🎯 Custom Fraud Case")
-    st.markdown("Create a custom credit card fraud case to investigate")
+# Main content - Custom Case
+st.header("🎯 Custom Fraud Case Investigation")
+st.markdown("Create and investigate credit card fraud cases using AI agent")
     
     col1, col2 = st.columns(2)
     
@@ -481,60 +340,67 @@ elif mode == "Custom Case":
         else:
             st.error("Please provide a description")
 
-elif mode == "History":
-    st.header("📜 Investigation History")
+# Investigation History Section (always shown below)
+st.markdown("---")
+st.header("📜 Investigation History")
+
+if st.session_state.investigation_history:
+    # History table
+    history_data = []
+    for inv in st.session_state.investigation_history:
+        result = inv['result']
+        
+        # Determine decision emoji
+        if result.final_risk_score >= 8:
+            decision_icon = "🔴"
+            decision_text = "CONFIRMED FRAUD"
+        elif result.final_risk_score >= 6:
+            decision_icon = "🟠"
+            decision_text = "SUSPECTED"
+        elif result.final_risk_score >= 4:
+            decision_icon = "🟡"
+            decision_text = "NEEDS REVIEW"
+        else:
+            decision_icon = "🟢"
+            decision_text = "LEGITIMATE"
+        
+        history_data.append({
+            'Timestamp': inv['timestamp'].strftime('%Y-%m-%d %H:%M'),
+            'Case ID': result.case_id,
+            'Score': f"{result.final_risk_score:.1f}/10",
+            'Decision': f"{decision_icon} {decision_text}",
+            'Evidence': len(result.evidence),
+            'Duration': f"{result.investigation_duration_seconds:.1f}s"
+        })
     
-    if st.session_state.investigation_history:
-        st.markdown(f"**Total Investigations:** {len(st.session_state.investigation_history)}")
-        
-        # Statistics
-        fraud_confirmed = sum(1 for inv in st.session_state.investigation_history 
-                            if inv['result'].final_risk_score >= 8)
-        avg_score = sum(inv['result'].final_risk_score 
-                       for inv in st.session_state.investigation_history) / len(st.session_state.investigation_history)
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Total Cases", len(st.session_state.investigation_history))
-        with col2:
-            st.metric("Confirmed Fraud", fraud_confirmed)
-        with col3:
-            st.metric("Avg Fraud Score", f"{avg_score:.1f}/10")
-        
-        st.markdown("---")
-        
-        # History table
-        history_data = []
-        for inv in st.session_state.investigation_history:
-            result = inv['result']
-            history_data.append({
-                'Timestamp': inv['timestamp'].strftime('%Y-%m-%d %H:%M:%S'),
-                'Case ID': result.case_id,
-                'Fraud Score': f"{result.final_risk_score:.1f}",
-                'Decision': result.recommendation[:30] + "..." if len(result.recommendation) > 30 else result.recommendation,
-                'Duration': f"{result.investigation_duration_seconds:.2f}s"
-            })
-        
-        df = pd.DataFrame(history_data)
-        st.dataframe(df, use_container_width=True)
-        
-        # View details
+    df = pd.DataFrame(history_data)
+    st.dataframe(df, use_container_width=True, hide_index=True)
+    
+    # Action buttons
+    col1, col2, col3 = st.columns([2, 1, 1])
+    
+    with col1:
         selected_case = st.selectbox(
-            "View Case Details",
-            [inv['result'].case_id for inv in st.session_state.investigation_history]
+            "Select case to view details:",
+            [inv['result'].case_id for inv in st.session_state.investigation_history],
+            key="history_select"
         )
-        
-        if st.button("Show Details"):
+    
+    with col2:
+        if st.button("📊 View Details", use_container_width=True):
             for inv in st.session_state.investigation_history:
                 if inv['result'].case_id == selected_case:
+                    st.markdown("---")
                     display_fraud_results(inv['result'])
                     break
-        
-        if st.button("Clear History"):
-            st.session_state.investigation_history = []
-            st.rerun()
-    else:
-        st.info("No investigations yet. Run a fraud detection to see history.")
+    
+    with col3:
+        if st.button("🗑️ Clear History", use_container_width=True):
+            if st.session_state.investigation_history:
+                st.session_state.investigation_history = []
+                st.rerun()
+else:
+    st.info("📊 No investigation history yet. Run a fraud detection above to see results here.")
 
 
 # Footer
