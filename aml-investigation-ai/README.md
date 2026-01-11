@@ -1,29 +1,34 @@
-# AML Investigation AI
+# Financial Fraud Detection AI
 
-A production-ready Anti-Money Laundering (AML) investigation system powered by AI agents using the ReACT (Reasoning and Acting) framework. This system enables automated financial crime detection and investigation through intelligent tool usage and evidence-based decision making.
+A production-ready **Financial Fraud Detection** system powered by AI agents using the ReACT (Reasoning and Acting) framework. This system enables automated fraud detection and investigation through intelligent agent-based tool usage and evidence-based decision making.
+
+**Focus**: Credit card fraud, account takeover, payment fraud, identity theft, and transaction anomalies.
 
 ## Features
 
-🔍 **Intelligent Investigation**
-- ReACT framework for systematic reasoning and action
+🤖 **AI Agent-Based Detection**
+- ReACT framework for systematic fraud reasoning
+- Autonomous agent decision making
 - Real-time tool integration for data gathering
-- Evidence-based decision making
-- Audit trail of all investigation steps
+- Evidence-based fraud classification
+- Complete audit trail of agent actions
 
-🛠️ **Investigation Tools**
-- Transaction history analysis
-- Customer profile evaluation
-- Regulatory threshold checking
-- Risk scoring and assessment
-- Pattern detection (structuring, velocity, etc.)
+🛠️ **Fraud Detection Tools**
+- Transaction pattern analysis
+- Behavioral anomaly detection
+- Device fingerprinting analysis
+- Velocity checks (frequency/amount)
+- Merchant category monitoring
+- Geolocation analysis
+- Account linking detection
 
-🚨 **Use Cases**
-- Suspicious Activity Report (SAR) investigations
-- Cash structuring detection
-- Wire transfer monitoring
-- Customer due diligence (CDD)
-- Enhanced due diligence (EDD)
-- Transaction monitoring alerts
+🚨 **Fraud Types Detected**
+- **Credit Card Fraud**: Unauthorized transactions, card-not-present fraud
+- **Account Takeover**: Suspicious login patterns, credential stuffing
+- **Payment Fraud**: ACH fraud, wire fraud, check fraud
+- **Identity Theft**: Synthetic identity, application fraud
+- **Transaction Anomalies**: Unusual spending patterns, velocity abuse
+- **Merchant Fraud**: Chargeback fraud, refund abuse
 
 ## Architecture
 
