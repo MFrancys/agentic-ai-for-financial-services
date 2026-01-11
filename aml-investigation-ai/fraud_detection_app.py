@@ -287,25 +287,129 @@ with st.sidebar:
 st.header("🎯 Custom Fraud Case Investigation")
 st.markdown("Create and investigate credit card fraud cases using AI agent")
 
+# Define 5 Mock Cases
+MOCK_CASES = {
+    "New Case": {
+        "case_id": f"CUSTOM_{datetime.now().strftime('%Y%m%d%H%M')}",
+        "customer_id": "CUST_001",
+        "account_id": "ACCT_12345",
+        "fraud_type": FraudType.CREDIT_CARD_FRAUD,
+        "total_amount": 1000.0,
+        "priority": "medium",
+        "time_window": 24,
+        "device_id": "DEV_UNKNOWN",
+        "geolocation": "Unknown",
+        "indicators": [],
+        "description": "Multiple unauthorized transactions detected",
+        "customer_response": ""
+    },
+    "🔴 Mock 1: High-Velocity Attack": {
+        "case_id": "FRAUD_2026_HV_001",
+        "customer_id": "CUST_8842",
+        "account_id": "ACCT_CC_8842",
+        "fraud_type": FraudType.CREDIT_CARD_FRAUD,
+        "total_amount": 4850.0,
+        "priority": "critical",
+        "time_window": 2,
+        "device_id": "DEV_UNKNOWN_MULTIPLE",
+        "geolocation": "New York, NY → Miami, FL → Los Angeles, CA",
+        "indicators": [FraudIndicator.UNUSUAL_VELOCITY, FraudIndicator.GEOGRAPHIC_ANOMALY, FraudIndicator.AMOUNT_ANOMALY],
+        "description": "15 transactions in 2 hours across multiple states. Customer card used at gas stations and retail stores. Amounts range from $200-$500 each. Pattern suggests card testing and rapid spending before card is blocked.",
+        "customer_response": "I haven't used my card today! I'm at home in Seattle. My card is missing from my wallet."
+    },
+    "🟠 Mock 2: Account Takeover": {
+        "case_id": "FRAUD_2026_ATO_002",
+        "customer_id": "CUST_5521",
+        "account_id": "ACCT_CC_5521",
+        "fraud_type": FraudType.ACCOUNT_TAKEOVER,
+        "total_amount": 8500.0,
+        "priority": "critical",
+        "time_window": 12,
+        "device_id": "DEV_ANDROID_UNKNOWN_IP_RUSSIA",
+        "geolocation": "Moscow, Russia",
+        "indicators": [FraudIndicator.NEW_DEVICE, FraudIndicator.GEOGRAPHIC_ANOMALY, FraudIndicator.BEHAVIORAL_CHANGE],
+        "description": "Account login from new device in Russia. Password changed, followed by adding new payee and initiating large wire transfer. Customer typically banks only from California. Email notifications disabled.",
+        "customer_response": "I can't access my account! Someone changed my password. I never authorized any transfers."
+    },
+    "🟡 Mock 3: Large Purchase Anomaly": {
+        "case_id": "FRAUD_2026_LPA_003",
+        "customer_id": "CUST_3309",
+        "account_id": "ACCT_CC_3309",
+        "fraud_type": FraudType.PAYMENT_FRAUD,
+        "total_amount": 12000.0,
+        "priority": "high",
+        "time_window": 1,
+        "device_id": "DEV_WEB_BROWSER_TOR",
+        "geolocation": "Unknown (TOR Network)",
+        "indicators": [FraudIndicator.AMOUNT_ANOMALY, FraudIndicator.BEHAVIORAL_CHANGE, FraudIndicator.NEW_DEVICE],
+        "description": "Single $12,000 transaction for electronics purchase from overseas merchant. Customer's typical monthly spending is $800-1,200. Transaction made via TOR browser at 3 AM local time. Shipping address different from billing address.",
+        "customer_response": "No response yet - customer contacted but hasn't replied in 2 hours."
+    },
+    "🟢 Mock 4: Behavioral Pattern Change": {
+        "case_id": "FRAUD_2026_BPC_004",
+        "customer_id": "CUST_7733",
+        "account_id": "ACCT_CC_7733",
+        "fraud_type": FraudType.CREDIT_CARD_FRAUD,
+        "total_amount": 6200.0,
+        "priority": "high",
+        "time_window": 8,
+        "device_id": "DEV_IOS_NEW_012345",
+        "geolocation": "Las Vegas, NV",
+        "indicators": [FraudIndicator.BEHAVIORAL_CHANGE, FraudIndicator.UNUSUAL_VELOCITY],
+        "description": "Customer with 5-year clean history suddenly makes multiple cash advances at casinos totaling $6,200. 8 transactions in 8 hours. Previously only used card for grocery and utility payments. No travel history to Las Vegas.",
+        "customer_response": "Yes, that was me. I'm on vacation in Vegas. Sorry, I should have notified you about the travel."
+    },
+    "🔵 Mock 5: Geographic Impossibility": {
+        "case_id": "FRAUD_2026_GEO_005",
+        "customer_id": "CUST_9156",
+        "account_id": "ACCT_CC_9156",
+        "fraud_type": FraudType.CREDIT_CARD_FRAUD,
+        "total_amount": 3400.0,
+        "priority": "critical",
+        "time_window": 1,
+        "device_id": "DEV_POS_TOKYO / DEV_POS_LONDON",
+        "geolocation": "Tokyo, Japan → London, UK (45 minutes apart)",
+        "indicators": [FraudIndicator.GEOGRAPHIC_ANOMALY, FraudIndicator.UNUSUAL_VELOCITY],
+        "description": "Physical card-present transactions in Tokyo (jewelry store, $1,800) and London (luxury goods, $1,600) within 45 minutes. Geographically impossible even with fastest flight. Both transactions used chip+PIN successfully.",
+        "customer_response": "I'm in London on business trip. The Tokyo transaction wasn't me - my card never left London!"
+    }
+}
+
+# Mock Case Selector
+st.markdown("### 📋 Select or Create Case")
+mock_case_selector = st.selectbox(
+    "Choose a case:",
+    list(MOCK_CASES.keys()),
+    help="Select a pre-defined mock case or create a new custom case"
+)
+
+# Get selected case data
+selected_case_data = MOCK_CASES[mock_case_selector]
+
+if mock_case_selector != "New Case":
+    st.info(f"📝 **Mock Case Loaded:** {mock_case_selector}")
+
 col1, col2 = st.columns(2)
 
 with col1:
-    case_id = st.text_input("Case ID", value=f"CUSTOM_{datetime.now().strftime('%Y%m%d%H%M')}")
-    customer_id = st.text_input("Customer ID", value="CUST_001")
-    account_id = st.text_input("Account ID", value="ACCT_12345")
+    case_id = st.text_input("Case ID", value=selected_case_data["case_id"])
+    customer_id = st.text_input("Customer ID", value=selected_case_data["customer_id"])
+    account_id = st.text_input("Account ID", value=selected_case_data["account_id"])
     
     fraud_type = st.selectbox(
         "Fraud Type",
-        [FraudType.CREDIT_CARD_FRAUD, FraudType.ACCOUNT_TAKEOVER, FraudType.PAYMENT_FRAUD]
+        [FraudType.CREDIT_CARD_FRAUD, FraudType.ACCOUNT_TAKEOVER, FraudType.PAYMENT_FRAUD],
+        index=[FraudType.CREDIT_CARD_FRAUD, FraudType.ACCOUNT_TAKEOVER, FraudType.PAYMENT_FRAUD].index(selected_case_data["fraud_type"])
     )
     
-    total_amount = st.number_input("Total Transaction Amount ($)", min_value=0.0, value=1000.0, step=100.0)
+    total_amount = st.number_input("Total Transaction Amount ($)", min_value=0.0, value=selected_case_data["total_amount"], step=100.0)
 
 with col2:
-    priority = st.selectbox("Priority", ["low", "medium", "high", "critical"])
-    time_window = st.slider("Time Window (hours)", 1, 72, 24)
-    device_id = st.text_input("Device ID", value="DEV_UNKNOWN")
-    geolocation = st.text_input("Transaction Location", value="Unknown")
+    priority = st.selectbox("Priority", ["low", "medium", "high", "critical"], 
+                           index=["low", "medium", "high", "critical"].index(selected_case_data["priority"]))
+    time_window = st.slider("Time Window (hours)", 1, 72, selected_case_data["time_window"])
+    device_id = st.text_input("Device ID", value=selected_case_data["device_id"])
+    geolocation = st.text_input("Transaction Location", value=selected_case_data["geolocation"])
     
     # Fraud indicators
     indicators = st.multiselect(
@@ -316,18 +420,20 @@ with col2:
             FraudIndicator.NEW_DEVICE,
             FraudIndicator.BEHAVIORAL_CHANGE,
             FraudIndicator.AMOUNT_ANOMALY
-        ]
+        ],
+        default=selected_case_data["indicators"]
     )
 
 description = st.text_area(
     "Fraud Description",
     placeholder="Describe the suspicious activity...",
-    value="Multiple unauthorized transactions detected"
+    value=selected_case_data["description"]
 )
 
 customer_response = st.text_area(
     "Customer Response (optional)",
-    placeholder="What does the customer say?"
+    placeholder="What does the customer say?",
+    value=selected_case_data["customer_response"]
 )
 
 if st.button("🚀 Run Fraud Detection", type="primary"):
