@@ -68,6 +68,8 @@ if 'fraud_result' not in st.session_state:
     st.session_state.fraud_result = None
 if 'investigation_history' not in st.session_state:
     st.session_state.investigation_history = []
+if 'api_key' not in st.session_state:
+    st.session_state.api_key = settings.openai_api_key or ""
 
 
 # ============================================================================
@@ -219,9 +221,32 @@ with st.sidebar:
     
     st.markdown("---")
     
+    # API Key Configuration
+    st.markdown("### 🔑 API Configuration")
+    
+    api_key_input = st.text_input(
+        "OpenAI API Key",
+        value=st.session_state.api_key,
+        type="password",
+        help="Enter your OpenAI API key. Get one at https://platform.openai.com/api-keys",
+        placeholder="sk-proj-..."
+    )
+    
+    # Update session state when key changes
+    if api_key_input != st.session_state.api_key:
+        st.session_state.api_key = api_key_input
+    
+    # Show status based on API key
+    if st.session_state.api_key and st.session_state.api_key.startswith("sk-"):
+        st.success("✅ API Key Configured")
+    else:
+        st.warning("⚠️ API Key Required")
+        st.markdown("👉 [Get API Key](https://platform.openai.com/api-keys)")
+    
+    st.markdown("---")
+    
     # System info
     st.markdown("### System Status")
-    st.success("✅ Agent Active")
     st.info(f"🤖 Model: {settings.model_name}")
     st.info(f"🔄 Max Iterations: {settings.max_iterations}")
     
@@ -306,7 +331,13 @@ customer_response = st.text_area(
 )
 
 if st.button("🚀 Run Fraud Detection", type="primary"):
-    if description:
+    # Check if API key is provided
+    if not st.session_state.api_key or not st.session_state.api_key.startswith("sk-"):
+        st.error("⚠️ Please enter your OpenAI API key in the sidebar first!")
+        st.info("👉 Get your API key at https://platform.openai.com/api-keys")
+    elif not description:
+        st.error("Please provide a fraud description")
+    else:
         # Create custom case
         case = FraudCase(
             case_id=case_id,
@@ -324,21 +355,25 @@ if st.button("🚀 Run Fraud Detection", type="primary"):
             transaction_ids=[]
         )
         
-        with st.spinner("🤖 AI Agent investigating..."):
-            agent = FraudDetectionAgent()
-            result = agent.investigate(case, verbose=False)
+        try:
+            with st.spinner("🤖 AI Agent investigating..."):
+                # Create agent with user's API key
+                agent = FraudDetectionAgent(api_key=st.session_state.api_key)
+                result = agent.investigate(case, verbose=False)
+                
+                st.session_state.fraud_result = result
+                st.session_state.investigation_history.append({
+                    'timestamp': datetime.now(),
+                    'case_id': result.case_id,
+                    'result': result
+                })
             
-            st.session_state.fraud_result = result
-            st.session_state.investigation_history.append({
-                'timestamp': datetime.now(),
-                'case_id': result.case_id,
-                'result': result
-            })
-        
-        st.success("✅ Investigation Complete!")
-        display_fraud_results(result)
-    else:
-        st.error("Please provide a description")
+            st.success("✅ Investigation Complete!")
+            display_fraud_results(result)
+        except Exception as e:
+            st.error(f"❌ Investigation Error: {str(e)}")
+            if "401" in str(e) or "API key" in str(e):
+                st.warning("⚠️ API Key issue. Please check your key in the sidebar.")
 
 # Investigation History Section (always shown below)
 st.markdown("---")
