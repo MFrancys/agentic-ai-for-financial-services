@@ -69,6 +69,144 @@ if 'fraud_result' not in st.session_state:
 if 'investigation_history' not in st.session_state:
     st.session_state.investigation_history = []
 
+
+# ============================================================================
+# HELPER FUNCTIONS - Define these FIRST before using them
+# ============================================================================
+
+def display_fraud_results(result):
+    """Display fraud detection results."""
+    
+    st.markdown("## 🎯 AI Agent Decision")
+    
+    # Main decision
+    if result.final_risk_score >= 8:
+        st.markdown(f'<div class="fraud-confirmed">🔴 CONFIRMED FRAUD</div>', unsafe_allow_html=True)
+    elif result.final_risk_score >= 6:
+        st.markdown(f'<div class="fraud-suspected">🟠 SUSPECTED FRAUD</div>', unsafe_allow_html=True)
+    elif result.final_risk_score >= 4:
+        st.markdown(f'<div class="legitimate">🟡 NEEDS REVIEW</div>', unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div class="legitimate">🟢 LEGITIMATE</div>', unsafe_allow_html=True)
+    
+    st.markdown("")
+    
+    # Metrics
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Fraud Score", f"{result.final_risk_score}/10")
+    with col2:
+        st.metric("Evidence Items", len(result.evidence))
+    with col3:
+        st.metric("Tools Used", len(result.tool_executions))
+    with col4:
+        st.metric("Duration", f"{result.investigation_duration_seconds:.2f}s")
+    
+    # Fraud gauge
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number+delta",
+        value=result.final_risk_score,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': "Fraud Risk Level", 'font': {'size': 24}},
+        delta={'reference': 5, 'increasing': {'color': "red"}},
+        gauge={
+            'axis': {'range': [None, 10], 'tickwidth': 1, 'tickcolor': "darkblue"},
+            'bar': {'color': "darkblue"},
+            'bgcolor': "white",
+            'borderwidth': 2,
+            'bordercolor': "gray",
+            'steps': [
+                {'range': [0, 4], 'color': '#90EE90'},
+                {'range': [4, 6], 'color': '#FFD700'},
+                {'range': [6, 8], 'color': '#FFA500'},
+                {'range': [8, 10], 'color': '#FF4500'}
+            ],
+            'threshold': {
+                'line': {'color': "red", 'width': 4},
+                'thickness': 0.75,
+                'value': 8
+            }
+        }
+    ))
+    fig.update_layout(height=300, margin=dict(l=20, r=20, t=50, b=20))
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Agent's recommendation
+    st.markdown("### 🤖 Agent's Recommendation")
+    st.info(result.recommendation)
+    
+    # Key findings
+    if result.key_findings:
+        st.markdown("### 🔍 Key Evidence")
+        for finding in result.key_findings:
+            st.markdown(f"- {finding}")
+    
+    # Evidence table
+    if result.evidence:
+        st.markdown("### 📋 Evidence Collected by Agent")
+        evidence_data = []
+        for ev in result.evidence:
+            evidence_data.append({
+                'Type': ev.evidence_type,
+                'Severity': ev.severity.upper(),
+                'Description': ev.description[:80] + '...' if len(ev.description) > 80 else ev.description,
+                'Source Tool': ev.source
+            })
+        df = pd.DataFrame(evidence_data)
+        st.dataframe(df, use_container_width=True)
+        
+        # Evidence severity pie chart
+        severity_counts = df['Severity'].value_counts()
+        fig = px.pie(values=severity_counts.values, names=severity_counts.index,
+                    title='Evidence by Severity',
+                    color_discrete_map={'HIGH': 'red', 'MEDIUM': 'orange', 'LOW': 'green'})
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Actions
+    st.markdown("### ✅ Recommended Actions")
+    for step in result.next_steps:
+        st.markdown(f"- {step}")
+    
+    # Agent reasoning trace
+    with st.expander("🧠 View Agent Reasoning (ReACT Trace)"):
+        if result.reasoning_trace:
+            for i, trace in enumerate(result.reasoning_trace, 1):
+                st.markdown(f"**Iteration {i}:**")
+                st.text(trace[:500] + "..." if len(trace) > 500 else trace)
+                st.markdown("---")
+        else:
+            st.info("No reasoning trace available")
+    
+    # Tool executions
+    with st.expander("🔧 Agent Tool Executions"):
+        if result.tool_executions:
+            tool_data = []
+            for tool_exec in result.tool_executions:
+                tool_data.append({
+                    'Tool': tool_exec.tool_name,
+                    'Success': '✅' if tool_exec.success else '❌',
+                    'Time (ms)': f"{tool_exec.execution_time_ms:.2f}" if tool_exec.execution_time_ms else 'N/A'
+                })
+            df_tools = pd.DataFrame(tool_data)
+            st.dataframe(df_tools, use_container_width=True)
+        else:
+            st.info("No tool executions recorded")
+    
+    # Download report
+    report_json = json.dumps(result.model_dump(), indent=2, default=str)
+    st.download_button(
+        label="📥 Download Full Report (JSON)",
+        data=report_json,
+        file_name=f"fraud_report_{result.case_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+        mime="application/json"
+    )
+
+
+# ============================================================================
+# MAIN APP START
+# ============================================================================
+
 # Header
 st.markdown('<div class="main-header">💳 Credit Card Fraud Detection AI</div>', unsafe_allow_html=True)
 st.markdown("### AI Agent-Powered Fraud Detection System")
@@ -397,135 +535,6 @@ elif mode == "History":
             st.rerun()
     else:
         st.info("No investigations yet. Run a fraud detection to see history.")
-
-
-def display_fraud_results(result):
-    """Display fraud detection results."""
-    
-    st.markdown("## 🎯 AI Agent Decision")
-    
-    # Main decision
-    if result.final_risk_score >= 8:
-        st.markdown(f'<div class="fraud-confirmed">🔴 CONFIRMED FRAUD</div>', unsafe_allow_html=True)
-    elif result.final_risk_score >= 6:
-        st.markdown(f'<div class="fraud-suspected">🟠 SUSPECTED FRAUD</div>', unsafe_allow_html=True)
-    elif result.final_risk_score >= 4:
-        st.markdown(f'<div class="legitimate">🟡 NEEDS REVIEW</div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div class="legitimate">🟢 LEGITIMATE</div>', unsafe_allow_html=True)
-    
-    st.markdown("")
-    
-    # Metrics
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("Fraud Score", f"{result.final_risk_score}/10")
-    with col2:
-        st.metric("Evidence Items", len(result.evidence))
-    with col3:
-        st.metric("Tools Used", len(result.tool_executions))
-    with col4:
-        st.metric("Duration", f"{result.investigation_duration_seconds:.2f}s")
-    
-    # Fraud gauge
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number+delta",
-        value=result.final_risk_score,
-        domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': "Fraud Risk Level", 'font': {'size': 24}},
-        delta={'reference': 5, 'increasing': {'color': "red"}},
-        gauge={
-            'axis': {'range': [None, 10], 'tickwidth': 1, 'tickcolor': "darkblue"},
-            'bar': {'color': "darkblue"},
-            'bgcolor': "white",
-            'borderwidth': 2,
-            'bordercolor': "gray",
-            'steps': [
-                {'range': [0, 4], 'color': '#90EE90'},
-                {'range': [4, 6], 'color': '#FFD700'},
-                {'range': [6, 8], 'color': '#FFA500'},
-                {'range': [8, 10], 'color': '#FF4500'}
-            ],
-            'threshold': {
-                'line': {'color': "red", 'width': 4},
-                'thickness': 0.75,
-                'value': 8
-            }
-        }
-    ))
-    fig.update_layout(height=300, margin=dict(l=20, r=20, t=50, b=20))
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Agent's recommendation
-    st.markdown("### 🤖 Agent's Recommendation")
-    st.info(result.recommendation)
-    
-    # Key findings
-    if result.key_findings:
-        st.markdown("### 🔍 Key Evidence")
-        for finding in result.key_findings:
-            st.markdown(f"- {finding}")
-    
-    # Evidence table
-    if result.evidence:
-        st.markdown("### 📋 Evidence Collected by Agent")
-        evidence_data = []
-        for ev in result.evidence:
-            evidence_data.append({
-                'Type': ev.evidence_type,
-                'Severity': ev.severity.upper(),
-                'Description': ev.description[:80] + '...' if len(ev.description) > 80 else ev.description,
-                'Source Tool': ev.source
-            })
-        df = pd.DataFrame(evidence_data)
-        st.dataframe(df, use_container_width=True)
-        
-        # Evidence severity pie chart
-        severity_counts = df['Severity'].value_counts()
-        fig = px.pie(values=severity_counts.values, names=severity_counts.index,
-                    title='Evidence by Severity',
-                    color_discrete_map={'HIGH': 'red', 'MEDIUM': 'orange', 'LOW': 'green'})
-        st.plotly_chart(fig, use_container_width=True)
-    
-    # Actions
-    st.markdown("### ✅ Recommended Actions")
-    for step in result.next_steps:
-        st.markdown(f"- {step}")
-    
-    # Agent reasoning trace
-    with st.expander("🧠 View Agent Reasoning (ReACT Trace)"):
-        if result.reasoning_trace:
-            for i, trace in enumerate(result.reasoning_trace, 1):
-                st.markdown(f"**Iteration {i}:**")
-                st.text(trace[:500] + "..." if len(trace) > 500 else trace)
-                st.markdown("---")
-        else:
-            st.info("No reasoning trace available")
-    
-    # Tool executions
-    with st.expander("🔧 Agent Tool Executions"):
-        if result.tool_executions:
-            tool_data = []
-            for tool_exec in result.tool_executions:
-                tool_data.append({
-                    'Tool': tool_exec.tool_name,
-                    'Success': '✅' if tool_exec.success else '❌',
-                    'Time (ms)': f"{tool_exec.execution_time_ms:.2f}" if tool_exec.execution_time_ms else 'N/A'
-                })
-            df_tools = pd.DataFrame(tool_data)
-            st.dataframe(df_tools, use_container_width=True)
-        else:
-            st.info("No tool executions recorded")
-    
-    # Download report
-    report_json = json.dumps(result.model_dump(), indent=2, default=str)
-    st.download_button(
-        label="📥 Download Full Report (JSON)",
-        data=report_json,
-        file_name=f"fraud_report_{result.case_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-        mime="application/json"
-    )
 
 
 # Footer
