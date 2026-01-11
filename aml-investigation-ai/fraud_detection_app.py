@@ -261,84 +261,84 @@ with st.sidebar:
 # Main content - Custom Case
 st.header("🎯 Custom Fraud Case Investigation")
 st.markdown("Create and investigate credit card fraud cases using AI agent")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    case_id = st.text_input("Case ID", value=f"CUSTOM_{datetime.now().strftime('%Y%m%d%H%M')}")
+    customer_id = st.text_input("Customer ID", value="CUST_001")
+    account_id = st.text_input("Account ID", value="ACCT_12345")
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        case_id = st.text_input("Case ID", value=f"CUSTOM_{datetime.now().strftime('%Y%m%d%H%M')}")
-        customer_id = st.text_input("Customer ID", value="CUST_001")
-        account_id = st.text_input("Account ID", value="ACCT_12345")
-        
-        fraud_type = st.selectbox(
-            "Fraud Type",
-            [FraudType.CREDIT_CARD_FRAUD, FraudType.ACCOUNT_TAKEOVER, FraudType.PAYMENT_FRAUD]
-        )
-        
-        total_amount = st.number_input("Total Transaction Amount ($)", min_value=0.0, value=1000.0, step=100.0)
-    
-    with col2:
-        priority = st.selectbox("Priority", ["low", "medium", "high", "critical"])
-        time_window = st.slider("Time Window (hours)", 1, 72, 24)
-        device_id = st.text_input("Device ID", value="DEV_UNKNOWN")
-        geolocation = st.text_input("Transaction Location", value="Unknown")
-        
-        # Fraud indicators
-        indicators = st.multiselect(
-            "Fraud Indicators",
-            [
-                FraudIndicator.UNUSUAL_VELOCITY,
-                FraudIndicator.GEOGRAPHIC_ANOMALY,
-                FraudIndicator.NEW_DEVICE,
-                FraudIndicator.BEHAVIORAL_CHANGE,
-                FraudIndicator.AMOUNT_ANOMALY
-            ]
-        )
-    
-    description = st.text_area(
-        "Fraud Description",
-        placeholder="Describe the suspicious activity...",
-        value="Multiple unauthorized transactions detected"
+    fraud_type = st.selectbox(
+        "Fraud Type",
+        [FraudType.CREDIT_CARD_FRAUD, FraudType.ACCOUNT_TAKEOVER, FraudType.PAYMENT_FRAUD]
     )
     
-    customer_response = st.text_area(
-        "Customer Response (optional)",
-        placeholder="What does the customer say?"
-    )
+    total_amount = st.number_input("Total Transaction Amount ($)", min_value=0.0, value=1000.0, step=100.0)
+
+with col2:
+    priority = st.selectbox("Priority", ["low", "medium", "high", "critical"])
+    time_window = st.slider("Time Window (hours)", 1, 72, 24)
+    device_id = st.text_input("Device ID", value="DEV_UNKNOWN")
+    geolocation = st.text_input("Transaction Location", value="Unknown")
     
-    if st.button("🚀 Run Fraud Detection", type="primary"):
-        if description:
-            # Create custom case
-            case = FraudCase(
-                case_id=case_id,
-                customer_id=customer_id,
-                account_id=account_id,
-                fraud_type=fraud_type,
-                description=description,
-                priority=priority,
-                total_amount=total_amount if total_amount > 0 else None,
-                fraud_indicators=indicators if indicators else [],
-                time_window_hours=time_window,
-                customer_response=customer_response if customer_response else None,
-                device_id=device_id,
-                geolocation=geolocation,
-                transaction_ids=[]
-            )
+    # Fraud indicators
+    indicators = st.multiselect(
+        "Fraud Indicators",
+        [
+            FraudIndicator.UNUSUAL_VELOCITY,
+            FraudIndicator.GEOGRAPHIC_ANOMALY,
+            FraudIndicator.NEW_DEVICE,
+            FraudIndicator.BEHAVIORAL_CHANGE,
+            FraudIndicator.AMOUNT_ANOMALY
+        ]
+    )
+
+description = st.text_area(
+    "Fraud Description",
+    placeholder="Describe the suspicious activity...",
+    value="Multiple unauthorized transactions detected"
+)
+
+customer_response = st.text_area(
+    "Customer Response (optional)",
+    placeholder="What does the customer say?"
+)
+
+if st.button("🚀 Run Fraud Detection", type="primary"):
+    if description:
+        # Create custom case
+        case = FraudCase(
+            case_id=case_id,
+            customer_id=customer_id,
+            account_id=account_id,
+            fraud_type=fraud_type,
+            description=description,
+            priority=priority,
+            total_amount=total_amount if total_amount > 0 else None,
+            fraud_indicators=indicators if indicators else [],
+            time_window_hours=time_window,
+            customer_response=customer_response if customer_response else None,
+            device_id=device_id,
+            geolocation=geolocation,
+            transaction_ids=[]
+        )
+        
+        with st.spinner("🤖 AI Agent investigating..."):
+            agent = FraudDetectionAgent()
+            result = agent.investigate(case, verbose=False)
             
-            with st.spinner("🤖 AI Agent investigating..."):
-                agent = FraudDetectionAgent()
-                result = agent.investigate(case, verbose=False)
-                
-                st.session_state.fraud_result = result
-                st.session_state.investigation_history.append({
-                    'timestamp': datetime.now(),
-                    'case_id': result.case_id,
-                    'result': result
-                })
-            
-            st.success("✅ Investigation Complete!")
-            display_fraud_results(result)
-        else:
-            st.error("Please provide a description")
+            st.session_state.fraud_result = result
+            st.session_state.investigation_history.append({
+                'timestamp': datetime.now(),
+                'case_id': result.case_id,
+                'result': result
+            })
+        
+        st.success("✅ Investigation Complete!")
+        display_fraud_results(result)
+    else:
+        st.error("Please provide a description")
 
 # Investigation History Section (always shown below)
 st.markdown("---")
